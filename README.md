@@ -128,56 +128,61 @@ copilot-delegate task.yaml --raw
 
 ## Agent integration
 
-The CLI outputs JSON to stdout, so any agent that can run shell commands and parse JSON can use it. Below are integration examples for common agents.
+The CLI outputs JSON to stdout, so any agent that can run shell commands and parse JSON can use it. The included skills follow the [Agent Skills specification](https://agentskills.io/specification) and can be installed with `gh skill install`.
 
-### Claude Code
-
-Install the included Agent Skill:
+### Install skills with `gh skill install`
 
 ```bash
-mkdir -p ~/.claude/skills/copilot-delegate
-cp skill/SKILL.md ~/.claude/skills/copilot-delegate/SKILL.md
+# Install both skills for your agent (e.g. Claude Code)
+gh skill install nobyt/gh-pilot-skill copilot-delegate --agent claude-code --scope user
+gh skill install nobyt/gh-pilot-skill orchestrate --agent claude-code --scope user
+
+# Or install for any supported agent (GitHub Copilot, Codex, Gemini CLI, Cursor, …)
+gh skill install nobyt/gh-pilot-skill copilot-delegate --agent github-copilot --scope user
+gh skill install nobyt/gh-pilot-skill orchestrate --agent gemini-cli --scope user
 ```
 
-Then invoke it in a session:
+Supported `--agent` values include `claude-code`, `github-copilot`, `codex`, `gemini-cli`, `cursor`, and [many more](https://cli.github.com/manual/gh_skill_install).
 
-```
-/copilot-delegate
-```
+### Available skills
 
-Claude analyzes the request, writes a task YAML, calls `copilot-delegate`, parses the JSON, and reports back — without bloating the conversation context.
+| Skill | Description |
+|-------|-------------|
+| `copilot-delegate` | Delegate a single task (code-edit, research, long-task) to Copilot |
+| `orchestrate` | Multi-phase orchestration: plan → delegate → verify → retry |
 
-### GitHub Copilot CLI (custom agent / extension)
-
-Call `copilot-delegate` from a shell tool or custom agent handler:
+### Manual installation
 
 ```bash
-copilot-delegate task.yaml
+# Claude Code
+mkdir -p ~/.claude/skills/copilot-delegate ~/.claude/skills/orchestrate
+cp skills/copilot-delegate/SKILL.md ~/.claude/skills/copilot-delegate/SKILL.md
+cp skills/orchestrate/SKILL.md ~/.claude/skills/orchestrate/SKILL.md
 ```
-
-Parse the JSON output and feed the `message` back into your agent's response.
-
-### Codex CLI
-
-Use Codex's shell execution capability to run the command and read stdout:
-
-```bash
-result=$(copilot-delegate task.yaml)
-echo "$result" | jq '.message'
-```
-
-### Gemini CLI
-
-Invoke via a shell tool call and pass the JSON result to the next prompt step.
 
 ### General pattern
 
-Any agent following this pattern works:
+Any agent following this pattern works with `copilot-delegate`:
 
 1. Generate `task.yaml` based on the user's request
 2. Run `copilot-delegate task.yaml`
 3. Parse `{ status, message, editedFiles, model }` from stdout
 4. Surface `message` and `editedFiles` to the user
+
+### Per-agent invocation examples
+
+**GitHub Copilot CLI (custom agent / extension)**
+```bash
+copilot-delegate task.yaml
+```
+
+**Codex CLI**
+```bash
+result=$(copilot-delegate task.yaml)
+echo "$result" | jq '.message'
+```
+
+**Gemini CLI / others** — invoke via a shell tool call and pass the JSON result to the next prompt step.
 
 ## Task file reference
 

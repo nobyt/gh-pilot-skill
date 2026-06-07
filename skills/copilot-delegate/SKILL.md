@@ -1,6 +1,8 @@
 ---
 name: copilot-delegate
 description: Delegate a code-edit, research, or long-task to GitHub Copilot CLI via the copilot-delegate CLI. Use when the user asks to offload a task to Copilot, wants to use a different LLM, or wants to reduce token usage for a large task.
+license: MIT
+compatibility: Requires copilot-delegate CLI (npm install from nobyt/gh-pilot-skill), a running GitHub Copilot CLI server (copilot --headless), and git.
 ---
 
 Delegate the user's task to GitHub Copilot CLI using the `copilot-delegate` command.
@@ -59,4 +61,4 @@ copilot-delegate .copilot-task.yaml
 
 - The Copilot CLI server must be running before invoking this skill. If the command fails with a connection error, tell the user to run: `copilot --headless --port 3000 --allow-all --add-dir <project-root>`
 - Do not include sensitive data (API keys, tokens) in the YAML file — they are read from the environment
-- The prompt in the YAML must be self-contained: Copilot has no memory of the current Claude Code conversation
+- The prompt in the YAML must be self-contained: Copilot has no memory of the current conversation

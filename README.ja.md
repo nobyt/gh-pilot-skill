@@ -128,47 +128,37 @@ copilot-delegate task.yaml --raw
 
 ## エージェント別インテグレーション
 
-CLI は JSON を stdout に出力するため、シェルコマンドを実行して JSON をパースできるエージェントであればどれでも利用できます。
+CLI は JSON を stdout に出力するため、シェルコマンドを実行して JSON をパースできるエージェントであればどれでも利用できます。付属のスキルは [Agent Skills 仕様](https://agentskills.io/specification) に準拠しており、`gh skill install` でインストールできます。
 
-### Claude Code
-
-付属の Agent Skill をインストールします:
+### `gh skill install` でスキルをインストール
 
 ```bash
-mkdir -p ~/.claude/skills/copilot-delegate
-cp skill/SKILL.md ~/.claude/skills/copilot-delegate/SKILL.md
+# Claude Code 向けにインストール（ユーザースコープ）
+gh skill install nobyt/gh-pilot-skill copilot-delegate --agent claude-code --scope user
+gh skill install nobyt/gh-pilot-skill orchestrate --agent claude-code --scope user
+
+# 他のエージェント向け（GitHub Copilot、Codex、Gemini CLI、Cursor など）
+gh skill install nobyt/gh-pilot-skill copilot-delegate --agent github-copilot --scope user
+gh skill install nobyt/gh-pilot-skill orchestrate --agent gemini-cli --scope user
 ```
 
-セッション内で以下のように呼び出します:
+`--agent` に指定できる値は `claude-code`、`github-copilot`、`codex`、`gemini-cli`、`cursor` など[多数あります](https://cli.github.com/manual/gh_skill_install)。
 
-```
-/copilot-delegate
-```
+### 利用可能なスキル
 
-Claude がリクエストを分析し、タスク YAML を生成して `copilot-delegate` を呼び出し、JSON をパースして結果を報告します。会話コンテキストを肥大化させることなく完結します。
+| スキル | 説明 |
+|--------|------|
+| `copilot-delegate` | 単一タスク（code-edit / research / long-task）を Copilot に委譲 |
+| `orchestrate` | 複数フェーズのオーケストレーション：計画→委譲→検証→リトライ |
 
-### GitHub Copilot CLI（カスタムエージェント / 拡張）
-
-シェルツールまたはカスタムエージェントハンドラーから `copilot-delegate` を呼び出します:
+### 手動インストール
 
 ```bash
-copilot-delegate task.yaml
+# Claude Code
+mkdir -p ~/.claude/skills/copilot-delegate ~/.claude/skills/orchestrate
+cp skills/copilot-delegate/SKILL.md ~/.claude/skills/copilot-delegate/SKILL.md
+cp skills/orchestrate/SKILL.md ~/.claude/skills/orchestrate/SKILL.md
 ```
-
-JSON 出力をパースし、`message` をエージェントのレスポンスに組み込みます。
-
-### Codex CLI
-
-シェル実行機能で標準出力を読み取ります:
-
-```bash
-result=$(copilot-delegate task.yaml)
-echo "$result" | jq '.message'
-```
-
-### Gemini CLI
-
-シェルツール呼び出しで実行し、JSON 結果を次のプロンプトステップに渡します。
 
 ### 共通パターン
 
@@ -178,6 +168,21 @@ echo "$result" | jq '.message'
 2. `copilot-delegate task.yaml` を実行
 3. stdout から `{ status, message, editedFiles, model }` をパース
 4. `message` と `editedFiles` をユーザーに提示
+
+### エージェント別呼び出し例
+
+**GitHub Copilot CLI（カスタムエージェント / 拡張）**
+```bash
+copilot-delegate task.yaml
+```
+
+**Codex CLI**
+```bash
+result=$(copilot-delegate task.yaml)
+echo "$result" | jq '.message'
+```
+
+**Gemini CLI / その他** — シェルツール呼び出しで実行し、JSON 結果を次のプロンプトステップに渡します。
 
 ## タスクファイルリファレンス
 
