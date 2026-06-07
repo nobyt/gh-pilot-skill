@@ -29,7 +29,7 @@ copilot --headless --port 3000   (persistent server)
 Any LLM via BYOK  (Anthropic, OpenAI, Azure, local models, …)
 ```
 
-The Copilot CLI server runs once as a background process. The `copilot-delegate` command is stateless — it connects, runs the task, outputs JSON, and exits.
+The Copilot CLI server runs once as a background process and maintains session history across invocations. Each `copilot-delegate` invocation creates a fresh session with no context from previous runs, outputs JSON, and exits. Use `resumeSession` in the SDK if you want to carry context across calls.
 
 ## Prerequisites
 

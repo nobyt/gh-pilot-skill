@@ -29,7 +29,7 @@ copilot --headless --port 3000   （常駐サーバー）
 BYOK で任意の LLM  （Anthropic, OpenAI, Azure, ローカルモデルなど）
 ```
 
-Copilot CLI サーバーはバックグラウンドで一度だけ起動します。`copilot-delegate` コマンドはステートレスで、接続・タスク実行・JSON 出力・終了を毎回行います。
+Copilot CLI サーバーはバックグラウンドで一度だけ起動し、セッション履歴を保持し続けます。`copilot-delegate` の各実行は前回の文脈を引き継がない新規セッションを作成し、JSON を出力して終了します。呼び出し間でコンテキストを引き継ぎたい場合は SDK の `resumeSession` を使用してください。
 
 ## 前提条件
 
