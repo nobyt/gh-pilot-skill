@@ -1,0 +1,26 @@
+{
+  "name": "copilot-delegate",
+  "version": "0.1.0",
+  "description": "Delegate coding tasks from any AI coding assistant to GitHub Copilot CLI via its SDK",
+  "type": "module",
+  "bin": {
+    "copilot-delegate": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.ts",
+    "start": "node dist/cli.js"
+  },
+  "dependencies": {
+    "@github/copilot-sdk": "^1.0.0",
+    "dotenv": "^16.4.0",
+    "js-yaml": "^4.1.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

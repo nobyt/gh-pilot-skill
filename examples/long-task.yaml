@@ -1,0 +1,17 @@
+task:
+  type: long-task
+  prompt: |
+    Scan all TypeScript files under src/ and replace every console.log() call
+    with the appropriate logger method. Use the `logger` instance from src/logger.ts.
+
+provider:
+  model: auto
+
+permissions:
+  allowedTools:
+    - read
+    - write
+    - shell
+
+output:
+  format: json

@@ -1,0 +1,13 @@
+task:
+  type: research
+  prompt: |
+    List all authentication libraries used in this repository
+    and report the role each one plays.
+
+permissions:
+  allowedTools:
+    - read
+    - shell
+
+output:
+  format: markdown

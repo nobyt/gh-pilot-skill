@@ -1,0 +1,20 @@
+task:
+  type: code-edit
+  prompt: |
+    Update the JWT verification logic in src/auth.ts to support the RS256 algorithm.
+    Currently it only supports HS256. Change it to use public-key verification.
+  context:
+    files:
+      - src/auth.ts
+      - src/types.ts
+
+provider:
+  model: claude-haiku-4.5
+
+permissions:
+  allowedTools:
+    - read
+    - write
+
+output:
+  format: json
