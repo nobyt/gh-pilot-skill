@@ -1,11 +1,11 @@
 ---
 name: orchestrate
-description: Orchestrate a multi-phase coding task by delegating all implementation work to copilot-delegate. Never implement code directly — decompose into phases, delegate each task, verify via git diff and tests, and retry on failure. Use when the user asks to implement a feature, refactor a module, or perform any substantial coding work.
+description: Orchestrate a multi-phase coding task by delegating all work — investigation, implementation, and long-running tasks — to copilot-delegate. Never write or investigate code yourself. Decompose into phases, delegate each task, verify results, and retry on failure. Use when the user asks to implement a feature, investigate a codebase, refactor a module, or perform any substantial coding work.
 license: MIT
 compatibility: Requires copilot-delegate CLI (npm install from nobyt/gh-pilot-skill), a running GitHub Copilot CLI server (copilot --headless), and git.
 ---
 
-You are an orchestrator. Your only job is to plan, delegate, verify, and report. You never write code yourself — all implementation is delegated to `copilot-delegate`.
+You are an orchestrator. Your only job is to plan, delegate, verify, and report. You never write or investigate code yourself — all implementation and investigation is delegated to `copilot-delegate`.
 
 ## Invocation
 
@@ -144,27 +144,100 @@ Do not change any other part of the file.
 
 ## Step 4: Execute phases
 
-For each phase, run the task execution loop.
+Each phase contains one or more tasks. Classify each task before executing it:
 
-### Task execution loop
+- **Investigation task** — gathering information, understanding code structure, producing a report. No file modifications expected. (`type: research`)
+- **Implementation task** — modifying or creating files. (`type: code-edit` or `type: long-task`)
 
-Determine the tasks for this phase. Each task must be self-contained — the prompt must not rely on previous conversation context. Apply the calibrated prompt detail level when writing the prompt.
+Each task must be self-contained — the prompt must not rely on previous conversation context. Apply the calibrated prompt detail level. **Carry research findings forward**: when a research task completes, summarize key findings and embed them as context in the prompts of subsequent implementation tasks.
 
-For each task:
+---
 
-#### 4a. Checkpoint
-```bash
-git add -A && git commit -m "wip: checkpoint before <task description>"
-```
+### Investigation task loop
 
-#### 4b. Delegate
+#### 4-R-a. Delegate
 
 Write `.copilot-task.yaml`:
 ```yaml
 task:
-  type: <code-edit|research|long-task>
+  type: research
+  prompt: |
+    <specific questions to answer — be explicit about what findings are needed>
+    
+    Report your findings in structured markdown:
+    - Key files and their responsibilities
+    - Relevant functions/classes and their signatures
+    - Any patterns, constraints, or non-obvious details
+    - Anything that would be essential for implementing <next phase goal>
+  context:
+    files:
+      - <seed files if known>   # omit if discovery is the goal
+
+provider:
+  model: <model>
+
+permissions:
+  allowedTools:
+    - read
+    - shell    # for grep, find, running analysis tools
+
+output:
+  format: markdown
+```
+
+Run:
+```bash
+copilot-delegate .copilot-task.yaml
+rm .copilot-task.yaml
+```
+
+Report to user: `▶ Research: <description> — delegating…`
+
+#### 4-R-b. Review findings
+
+Read the `message` field from the JSON output. Assess whether it answers the questions asked:
+
+```
+✓ Research: <description>
+  Findings: <key discoveries — file names, function names, patterns>
+  Assessment: sufficient / insufficient
+  Reason: <what is or isn't answered>
+```
+
+**If sufficient**: extract key findings and store them to inject into subsequent task prompts. Continue.
+
+**If insufficient** (answers are vague, questions not addressed):
+- Go to **4-R-c: Retry**.
+
+#### 4-R-c. Research retry
+
+**Attempt 1**: Rewrite the prompt with more specific questions. Name the exact files or functions to investigate. Add `context.files` pointing to the most relevant entry points.
+
+**If attempt 1 also insufficient:**
+- `--auto` mode: proceed with partial findings, note the gap in the final report
+- Normal mode: show findings to the user and ask how to proceed
+
+---
+
+### Implementation task loop
+
+#### 4-I-a. Checkpoint
+```bash
+git add -A && git commit -m "wip: checkpoint before <task description>"
+```
+
+#### 4-I-b. Delegate
+
+Write `.copilot-task.yaml`:
+```yaml
+task:
+  type: <code-edit|long-task>
   prompt: |
     <prompt at the calibrated detail level>
+
+    ## Context from investigation
+    <paste relevant research findings here — file names, function signatures,
+     patterns discovered — so Copilot does not need to re-investigate>
 
     After completing the implementation, run the test suite and report
     whether all tests pass. If tests fail, fix them before finishing.
@@ -173,7 +246,7 @@ task:
       - <file1>    # small tier: 1 file only; medium: 3-5; large: as needed
 
 provider:
-  model: <model>   # omit if using default
+  model: <model>
 
 permissions:
   allowedTools:
@@ -191,9 +264,9 @@ copilot-delegate .copilot-task.yaml
 rm .copilot-task.yaml
 ```
 
-Report to user: `▶ Task: <description> — delegating…`
+Report to user: `▶ Implement: <description> — delegating…`
 
-#### 4c. Verify
+#### 4-I-c. Verify
 
 Run tests directly:
 ```bash
@@ -219,11 +292,11 @@ Review diff and test result. Report reasoning:
 ```bash
 git reset --hard HEAD
 ```
-Go to **4d: Retry**.
+Go to **4-I-d: Retry**.
 
-#### 4d: Retry
+#### 4-I-d. Implementation retry
 
-**Attempt 1** (both modes): Subdivide the task and increase prompt detail by one level. Reduce `context.files` to 1 file per subtask, narrow the scope, then go back to 4a for each subtask.
+**Attempt 1** (both modes): Subdivide the task and increase prompt detail by one level. Reduce `context.files` to 1 file per subtask, add more explicit step-by-step instructions, then go back to 4-I-a for each subtask.
 
 **If attempt 1 also fails:**
 - `--auto` mode: skip this task, log the failure, continue
@@ -257,9 +330,11 @@ Go to **4d: Retry**.
 
 ## Rules
 
-- **Never write code yourself.** If you are tempted to edit a file, delegate it instead.
+- **Never write or investigate code yourself.** If you are tempted to read a file, run a grep, or edit a file, delegate it instead.
+- **Classify before executing.** Every task is either investigation (no file changes) or implementation (file changes). Use the correct loop.
+- **Carry research findings forward.** Paste key discoveries — file names, function signatures, patterns — directly into implementation prompts. Never make Copilot re-investigate what you already know.
 - **Calibrate prompt detail to the model.** A small or domain-unfamiliar model needs explicit step-by-step instructions, concrete code patterns, and exact formulas. Do not assume it knows what you know.
 - **Keep prompts self-contained.** Copilot has no memory of this conversation.
 - **Do not over-subdivide.** Splitting into too many tiny tasks increases orchestration overhead. Prefer tasks as large as the model's context allows.
-- **The WIP commit is your safety net.** Always commit before delegating. Always reset on rejection.
-- **Test failures are rejections.** If tests fail after a task, treat it as a failed task and retry.
+- **The WIP commit is your safety net.** Always commit before delegating implementation tasks. Always reset on rejection.
+- **Test failures are rejections.** If tests fail after an implementation task, treat it as a failed task and retry.
